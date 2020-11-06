@@ -163,12 +163,64 @@ uint8_t eeprom_read_byte(uint8_t data_address)
 	return data;
 }
 
-void eeprom_write_page(uint8_t data_address, uint8_t* data) 
+void eeprom_write_page(uint8_t data_address, uint8_t* data)
 {
+	//Start
+	i2c_start();
 
+	//Transmit eeprom address + write
+	i2c_xmit_addr(EEPROM_ADDRESS, I2C_W);
+
+	//Make sure data_address is multiple of 8
+	while (data_address % 8 != 0)
+	{
+		data_address++;
+	}
+
+	//Transmit data address
+	i2c_xmit_byte(data_address);
+
+	//Transmit data one byte at a time
+	int i;
+	for (i = 0; i < 8; i++)
+	{
+		i2c_xmit_byte(data[i]);
+	}
+
+	//Stop
+	i2c_stop();
+
+	//Wait for write complete. 
+	eeprom_wait_until_write_complete();
 }
 
-void eeprom_sequential_read(uint8_t* buf, uint8_t data_start_address, uint8_t len) 
+void eeprom_sequential_read(uint8_t* buf, uint8_t data_start_address, uint8_t len)
 {
+	//Start
+	i2c_start();
 
+	//Transmit eeprom address + write
+	i2c_xmit_addr(EEPROM_ADDRESS, I2C_W);
+
+	//Transmit data start address
+	i2c_xmit_byte(data_start_address);
+
+	//Start
+	i2c_start();
+
+	//Transmit eeprom adrress + read
+	i2c_xmit_addr(EEPROM_ADDRESS, I2C_R);
+
+	//Receive data one byte at a time
+	int i;
+	for (i = 0; i < len - 1; i++)
+	{
+		buf[i] = i2c_read_ACK();
+	}
+
+	//Receive last data byte 
+	buf[len - 1] = i2c_read_NAK();
+
+	//Stop
+	i2c_stop();
 }
